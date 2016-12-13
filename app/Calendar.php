@@ -21,10 +21,21 @@ class Calendar extends Model
      * @return \Google_Client
      */
     public static function getClient($id){
+
         $calendar = Calendar::find($id);
         $client = new \Google_Client();
-
         $client->setAccessToken($calendar->access_token);
+
+        if ($client->isAccessTokenExpired()) {
+            $client->setScopes(implode(' ', array(\Google_Service_Calendar::CALENDAR_READONLY)));
+            $client->setAuthConfig(config('google.config_dir'));
+            $client->setApplicationName(config('google.calendar'));
+            $client->setAccessType('offline');
+            $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
+            $newAccessToken = json_encode($client->getAccessToken());
+            $calendar->access_token = $newAccessToken;
+            $calendar->save();
+            }
 
         return $client;
 

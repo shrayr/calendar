@@ -25,9 +25,9 @@ class CalendarsController extends Controller
      * Index page of Calendars.. Show User All Calendars
      * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
      */
-    public function index(){
+    public function index()
+    {
         $calendars = Calendar::where('user_id', Auth::user()->id)->get();
-
         return view('calendars.index', compact('calendars'));
     }
 
@@ -36,26 +36,31 @@ class CalendarsController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function calendar($id)
+    public function calendar($id, $calendar_id)
     {
-        $client = Calendar::getClient($id);
+        try {
+            $client = Calendar::getClient($id);
+        } catch (\Exception $e) {
+            flash()->error($e->getMessage());
+            return redirect()->route('calendars');
+        }
         $service = new \Google_Service_Calendar($client);
+        $calendarList = $service->calendarList->listCalendarList();
 
         // Get the next 100 events on the user's calendar.
-        $calendarId = 'primary';
+        $calendarId = $calendar_id;
         $optParams = array(
             'maxResults' => 100,
             'orderBy' => 'startTime',
             'singleEvents' => TRUE,
             'timeMin' => date('c'),
         );
-        try{
+        try {
             $results = $service->events->listEvents($calendarId, $optParams);
-        }catch(\Exception $e){
-            flash()->success('Your Access Token is Expired');
-           return redirect()->route('calendars');
+        } catch (\Exception $e) {
+           flash()->error($e->getMessage());
+            return redirect()->route('calendars');
         }
-
         $events = [];
         if (count($results->getItems())) {
             foreach ($results->getItems() as $event) {
@@ -71,11 +76,10 @@ class CalendarsController extends Controller
                     'url' => $event->htmlLink,
                     'allDay' => false
                 ];
-
             }
         }
         $events = json_encode($events);
-        return view('calendars.show', compact('events'));
+        return view('calendars.show', compact('events', 'calendarList', 'id'));
     }
 
 
@@ -84,41 +88,62 @@ class CalendarsController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function store(Request $request){
-        $this->validate($request, ['name' => 'required', 'access_token' => 'required']);
+    public function store(Request $request)
+    {
+        $this->validate($request, ['name' => 'required']);
         Calendar::create([
             'user_id' => Auth::user()->id,
             'name' => $request['name'],
-            'access_token' => $request['access_token'],
-            'calendar_id' => $request->get('calendar_id', 'primary'),
         ]);
-
-        flash()->success('Calendar Added');
-        return back();
+        $client = new \Google_Client();
+        $client->setApplicationName(config('google.calendar'));
+        $client->setScopes(implode(' ', array(\Google_Service_Calendar::CALENDAR_READONLY)));
+        $client->setAuthConfig(config('google.config_dir'));
+        $client->setAccessType('offline');
+        $client->setRedirectUri('http://' . $_SERVER['HTTP_HOST'] . '/oauth2redirect');
+        $authUrl = $client->createAuthUrl();
+        return redirect($authUrl);
     }
 
 
     /**
-     * Get Access Token (For test)
+     * Get Access Token
      * @param Request $request
      * @return \Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector
      */
-    public function getAccessToken(Request $request){
-
+    public function getAccessToken(Request $request)
+    {
         $client = new \Google_Client();
         $client->setApplicationName(config('google.app_name'));
         $client->setScopes(implode(' ', array(\Google_Service_Calendar::CALENDAR_READONLY)));
         $client->setAuthConfig(config('google.config_dir'));
         $client->setAccessType('offline');
-        $client->setRedirectUri(route('home') . '/get-access-token');
-
-        if(isset($request['code'])){
+        if (isset($request['code'])) {
             $accessToken = $client->fetchAccessTokenWithAuthCode($request['code']);
-            dd($accessToken);
+            $accessToken = json_encode($accessToken);
+            $calendar = Calendar::where('user_id', Auth::user()->id)->orderBy('id', 'desc')->first();
+            $calendar->access_token = $accessToken;
+            $calendar->save();
+            return redirect()->route('calendar', [$calendar->id, 'primary']);
+        } else {
+            return redirect()->route('calendars');
         }
-         $authUrl = $client->createAuthUrl();
-         return redirect($authUrl);
+    }
 
+
+    /**
+     * Update Access_Token (Ajax Call)
+     * @param Request $request
+     */
+    public function updateAccessToken(Request $request)
+    {
+        $calendar = Calendar::find($request['id']);
+        $token = trim($request['value']);
+        $token = substr($token, 0, -1);
+        $token = $token . ',"created":40740871568192}';   // test version
+        $calendar->access_token = $token;
+        $calendar->save();
+        return 'Your Access Token is Updated';
     }
 
 

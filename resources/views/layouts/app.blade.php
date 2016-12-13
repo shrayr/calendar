@@ -16,6 +16,8 @@
     <!-- css plugins -->
     <link href="/css/plugins/fullcalendar/fullcalendar.css" rel="stylesheet">
     <link href="/css/plugins/iCheck/custom.css" rel="stylesheet">
+    <link href="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.5.0/bootstrap3-editable/css/bootstrap-editable.css"
+          rel="stylesheet"/>
 
     <!-- js -->
     <script src="/js/jquery-2.1.1.js"></script>
@@ -32,7 +34,7 @@
     <script src="/js/plugins/metisMenu/jquery.metisMenu.js"></script>
     <script src="/js/plugins/pace/pace.min.js"></script>
     <script src="/js/plugins/slimscroll/jquery.slimscroll.min.js"></script>
-
+    <script src="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.5.0/bootstrap3-editable/js/bootstrap-editable.min.js"></script>
 
 
 </head>
@@ -69,7 +71,7 @@
                                 </li>
                                 <li>
                                     <a href="{{route('calendars')}}"><i class="fa fa-calendar"></i> <span
-                                                class="nav-label">Calendar</span></a>
+                                                class="nav-label">Calendars</span></a>
                                 </li>
 
                             </ul>
@@ -97,18 +99,24 @@
                     </nav>
                 </div>
 
-                <script>
-                    $( document ).ready(function(){
-                       $('.logout-link').click(function(){
-                           $('.logout-form').submit();
-                       });
-                   });
-                </script>
+
                 @include('flash::message')
                 @yield('content')
 
             </div>
         </div>
+        <script>
+            $( document ).ready(function(){
+                $('.logout-link').click(function(){
+                    $('.logout-form').submit();
+                });
+
+                ID = window.setTimeout(function(){
+                    $('.alert').fadeOut(1000);
+                }, 5000);
+
+            });
+        </script>
         <!-- Mainly scripts -->
 
         @yield('footer')

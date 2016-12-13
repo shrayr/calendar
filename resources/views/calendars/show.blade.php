@@ -42,7 +42,12 @@
                             </div>
                         </div>
                         <div class="ibox-content">
-
+                            <h3>Calendar Lists</h3>
+                            <hr>
+                            @foreach($calendarList as $item)
+                                <a href="{{route('calendar', [$id, $item->id])}}">{{$item->summary}}</a><br>
+                            @endforeach
+                            <hr>
                             <div id="calendar"></div>
                         </div>
                     </div>
@@ -111,16 +116,6 @@
                     }
                 },
                 events: events
-//                events: [
-//
-//                    {
-//                        id: 999,
-//                        title: 'Click for Google',
-//                        start: new Date(y, m, 28),
-//                        end: new Date(y, m, 29),
-//                        url: 'http://google.com/'
-//                    }
-//                ]
             });
 
 

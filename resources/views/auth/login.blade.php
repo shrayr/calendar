@@ -60,6 +60,10 @@
                             </div>
                         </div>
                     </form>
+                    <hr></hr>
+                    <div class="text-center" >
+                        <a href="{{url('/register')}}">Register</a>
+                    </div>
                 </div>
             </div>
         </div>
